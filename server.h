@@ -1,7 +1,9 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#define BACKLOG
+#define BACKLOG 20;
+#define RECEIVE_BUFFER_SIZE 140
+#define SEND_BUFFER_SIZE 300
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -46,8 +48,12 @@ class server
         struct timeval timeout;
 
         SOCKADDR_IN addr;
-        FD_SET fdSet;
-        int serverSocket, maxSocket;
+        FD_SET fdSet, workingSet;
+        int listenSocket, maxSocket,newSocket, i;
+		bool closeConnection;
+		char receiveBuffer[RECEIVE_BUFFER_SIZE];
+		char sendBuffer[SEND_BUFFER_SIZE];
+
 
 };
 
