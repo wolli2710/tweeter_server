@@ -25,7 +25,7 @@ void server::run(){
 
     startWinSock();
 
-    listenSocket =  socket(AF_INTE, SOCK_STREAM, 0);
+    listenSocket =  socket(AF_INET, SOCK_STREAM, 0);
     if(listenSocket == INVALID_SOCKET){
         error("Socket U fail");
         exit(1);
@@ -34,7 +34,7 @@ void server::run(){
     timeout.tv_sec = 3 * 60;
     timeout.tv_usec = 0;
 
-    bind(char* address);    
+    bindServer("localhost", PORT);    
     
     listenServer(); 
     
@@ -75,16 +75,14 @@ void server::run(){
 						if(newSocket > maxSocket){
 							maxSocket=newSocket;
 						}
-					}while(newSocket != -1)
+					}while(newSocket != -1);
 				}
 				else{
 					closeConnection=false;
 					while(true){
 						rc = recv(i, receiveBuffer, sizeof(receiveBuffer),0);
 						if(rc<0){
-							if(errno == EWOULDBLOCK){
-								closeConnection=true;
-							}
+							closeConnection=true;
 							break;
 						}
 						if(rc==0){
@@ -92,6 +90,27 @@ void server::run(){
 							break;
 						}
 						//todo!!!!!!!!!!!!!!!!!!!!!
+						//login
+						string sendingUser = findUserSocket(i);
+						if(sendingUser==""){
+							//add user to map if not exist
+							if(!findUser(receiveBuffer)){
+								users.insert(pair<string, int>(receiveBuffer, i));
+							}
+							else{
+								users.find(receiveBuffer)->second=i;
+							}
+						}
+						//messages
+						else{
+							//befüllen
+							message m (sendingUser,receiveBuffer, timestamp() );
+							messages.push_back(m);
+						}
+
+
+
+						////////////////////////////
 					}
 				}
 			}
@@ -100,13 +119,14 @@ void server::run(){
 }
 
 void server::bindServer(char* address, int port){
-    memset(&addr, 0, sizeof(SOCKADDR_IN);
+    memset(&addr, 0, sizeof(SOCKADDR_IN));
     addr.sin_family=AF_INET;
-    addr.sin_port=htons(5000); 
-    addr.sin_addr.s_addr=gethostbyname(address);
+    addr.sin_port=htons(5000);
+	addr.sin_addr.s_addr = ADDR_ANY;
+    //todo addr.sin_addr.s_addr=gethostbyname(address);
 
     int rc;
-    rc = bind(listenSocket, (SOCKADDR*)&addr, sizeof(SOCKADDR_IN);
+    rc = bind(listenSocket, (SOCKADDR*)&addr, sizeof(SOCKADDR_IN));
     if(rc == SOCKET_ERROR){
         error("Binding failed");
         exit(1);
@@ -128,4 +148,17 @@ void server::error(char* string){
 	#else 
 		cout << endl << string << " " << WSAGetLastError() << endl;
 	#endif
+}
+
+string server::findUserSocket(int socketNr){
+	for(users_it=users.begin(); users_it!=users.end(); users_it++){
+		if(users_it->second == socketNr){
+			return users_it->first;
+		}
+	}
+	return "";
+}
+
+bool server::findUser(string username){
+	return users.find(username)!=users.end();
 }

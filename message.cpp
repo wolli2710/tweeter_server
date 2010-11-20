@@ -1,6 +1,7 @@
 #include "message.h"
 
-message::message()
+message::message(string username, string message, timestamp currenttime)
+:name(username),text(message),time(currenttime)
 {
     //ctor
 }
