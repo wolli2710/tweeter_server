@@ -26,6 +26,7 @@ void server::run(){
     startWinSock();
 
     listenSocket =  socket(AF_INET, SOCK_STREAM, 0);
+	
     if(listenSocket == INVALID_SOCKET){
         error("Socket U fail");
         exit(1);
@@ -37,11 +38,13 @@ void server::run(){
     bindServer("localhost", PORT);    
     
     listenServer(); 
-    
+
+
     FD_ZERO(&fdSet);
     maxSocket = listenSocket;
     FD_SET(listenSocket, &fdSet);
     
+	cout<<"Server started\n";
     while(1){
 		memcpy(&workingSet, &fdSet, sizeof(fdSet));
 		int rc, descriptor_ready;
@@ -70,6 +73,10 @@ void server::run(){
 							break;
 						}
 						cout<<"New client "<<newSocket<<endl;
+
+						memcpy(&sendBuffer, "Connected with Server", sizeof("Connected with Server"));
+						send(i, sendBuffer, sizeof(sendBuffer), 0);
+
 						//set new Socket to 1 in fdSet
 						FD_SET(newSocket, &fdSet);		
 						if(newSocket > maxSocket){
@@ -103,6 +110,9 @@ void server::run(){
 						}
 						//messages
 						else{
+							if(strcpy(receiveBuffer, "f ") == 0){
+								
+							}
 							//befüllen
 							message m (sendingUser,receiveBuffer, timestamp() );
 							messages.push_back(m);
@@ -120,9 +130,13 @@ void server::run(){
 
 void server::bindServer(char* address, int port){
     memset(&addr, 0, sizeof(SOCKADDR_IN));
-    addr.sin_family=AF_INET;
+   /* addr.sin_family=AF_INET;
     addr.sin_port=htons(5000);
 	addr.sin_addr.s_addr = ADDR_ANY;
+	*/
+	addr.sin_family=AF_INET;												//IPv4
+		addr.sin_port=htons(5000);												// Port 5000 in use
+		addr.sin_addr.s_addr=inet_addr("127.0.0.1");
     //todo addr.sin_addr.s_addr=gethostbyname(address);
 
     int rc;
