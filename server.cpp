@@ -67,23 +67,29 @@ void server::run(){
 			
 				if(i == listenSocket){
 					do{
+						cout << "dafsdf";
 						newSocket = accept(listenSocket, NULL, NULL);
+						cout << "dsdf";
 						if(newSocket < 0){
 							error("client connection failed");
 							break;
 						}
 						cout<<"New client "<<newSocket<<endl;
 
-						memcpy(&sendBuffer, "Connected with Server", sizeof("Connected with Server"));
-						send(i, sendBuffer, sizeof(sendBuffer), 0);
+						memcpy(&sendBuffer, "Connected with Server", sizeof("Connected with Server..."));
+
+						send(newSocket, sendBuffer, sizeof(sendBuffer), 0);
 
 						//set new Socket to 1 in fdSet
 						FD_SET(newSocket, &fdSet);		
 						if(newSocket > maxSocket){
 							maxSocket=newSocket;
 						}
+						cout<<newSocket;
 					}while(newSocket != -1);
+
 				}
+				
 				else{
 					closeConnection=false;
 					while(true){
@@ -98,8 +104,12 @@ void server::run(){
 						}
 						//todo!!!!!!!!!!!!!!!!!!!!!
 						//login
+						cout<<"test0";
+
 						string sendingUser = findUserSocket(i);
+						cout<<"test1";
 						if(sendingUser==""){
+							cout<<"test2";
 							//add user to map if not exist
 							if(!findUser(receiveBuffer)){
 								users.insert(pair<string, int>(receiveBuffer, i));
@@ -107,10 +117,18 @@ void server::run(){
 							else{
 								users.find(receiveBuffer)->second=i;
 							}
+							cout<<"wir sind da";
+							memcpy(&sendBuffer, "User logged in", sizeof("User logged in"));
+							send(i, sendBuffer, sizeof(sendBuffer), 0);
+							
+						
 						}
+
+
 						//messages
 						else{
-							if(strcpy(receiveBuffer, "f ") == 0){
+							//following
+							if(strcmp(receiveBuffer, "f") == 0){
 								
 							}
 							//befüllen
@@ -122,7 +140,9 @@ void server::run(){
 
 						////////////////////////////
 					}
+
 				}
+				cout << "test10"<<endl;
 			}
 		}
     }    
@@ -135,8 +155,8 @@ void server::bindServer(char* address, int port){
 	addr.sin_addr.s_addr = ADDR_ANY;
 	*/
 	addr.sin_family=AF_INET;												//IPv4
-		addr.sin_port=htons(5000);												// Port 5000 in use
-		addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+	addr.sin_port=htons(5000);												// Port 5000 in use
+	addr.sin_addr.s_addr=inet_addr("127.0.0.1");
     //todo addr.sin_addr.s_addr=gethostbyname(address);
 
     int rc;
@@ -174,5 +194,5 @@ string server::findUserSocket(int socketNr){
 }
 
 bool server::findUser(string username){
-	return users.find(username)!=users.end();
+	return users.find(username)!= users.end();
 }
