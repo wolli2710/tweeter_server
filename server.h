@@ -1,9 +1,8 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#define BACKLOG 20
-#define RECEIVE_BUFFER_SIZE 140
-#define SEND_BUFFER_SIZE 300
+#define BACKLOG 100
+#define BUFFER_SIZE 300
 #define WIN32 
 #define PORT 5000
 
@@ -58,10 +57,9 @@ class server
         FD_SET fdSet, workingSet;
         int listenSocket, maxSocket,newSocket, i, on;
 		bool closeConnection;
-		char receiveBuffer[RECEIVE_BUFFER_SIZE];
-		char sendBuffer[SEND_BUFFER_SIZE];
-
-
+		char receiveBuffer[BUFFER_SIZE];
+		char sendBuffer[BUFFER_SIZE];
+        int rc, descriptor_ready;
 };
 
 #endif // SERVER_H

@@ -22,7 +22,7 @@ void server::startWinSock(){
 }
 
 void server::run(){
-
+    on = 1;
     startWinSock();
 
     listenSocket =  socket(AF_INET, SOCK_STREAM, 0);
@@ -31,45 +31,52 @@ void server::run(){
         error("Socket U fail");
         exit(1);
     }
-	on = 1;
+
+    rc = setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&on, sizeof(on));
+    if(rc < 0){
+        error("setsocketopt");
+    }
+
 #ifndef WIN32
 	ioctl(listenSocket, FIONBIO, (char*)&on);
 #else
 	ioctlsocket(listenSocket, FIONBIO, (u_long*)&on);
 #endif
-    timeout.tv_sec = 3 * 60;
+
+
+    timeout.tv_sec = 20;
     timeout.tv_usec = 0;
 
     bindServer("localhost", PORT);    
     
     listenServer(); 
 
-
     FD_ZERO(&fdSet);
     maxSocket = listenSocket;
     FD_SET(listenSocket, &fdSet);
     
 	cout<<"Server started\n";
+    
     while(1){
+        
+        cout << "before memcpy " << endl;
 		memcpy(&workingSet, &fdSet, sizeof(fdSet));
-		int rc, descriptor_ready;
-		rc = select(maxSocket+1, &fdSet, NULL, NULL, &timeout);
-
+        cout << "before select" << endl;
+		rc = select(maxSocket+1, &workingSet, NULL, NULL, &timeout);
+        cout<< rc << endl;
 		if(rc<0){
-			error("select failed");
-			break;
+			error("select failed");			
 		}
 		if(rc==0){
-			cout<< "select timeout";
+			cout<< "select timeout" << endl;
 			continue;
-		}
+		}		
 		
-		descriptor_ready = rc;
-
+        descriptor_ready = rc;
 		for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){
+            
 			if(FD_ISSET(i, &workingSet)) {
 				descriptor_ready-- ;
-			
 				if(i == listenSocket){
 					do{
 						newSocket = accept(listenSocket, NULL, NULL);
@@ -77,7 +84,7 @@ void server::run(){
 						if(newSocket < 0){
 							break;
 						}
-						cout<<"New client "<<newSocket<<endl;
+						cout<<"New client " << newSocket << endl;
 
 						memcpy(&sendBuffer, "Connected with Server", sizeof("Connected with Server..."));
 
@@ -88,12 +95,11 @@ void server::run(){
 						if(newSocket > maxSocket){
 							maxSocket=newSocket;
 						}
-						cout<<newSocket;
 					}while(newSocket != -1);
-
 				}
 				
 				else{
+                  
 					closeConnection=false;
 					while(true){
 						rc = recv(i, receiveBuffer, sizeof(receiveBuffer),0);
@@ -105,14 +111,10 @@ void server::run(){
 							closeConnection=true;
 							break;
 						}
-						//todo!!!!!!!!!!!!!!!!!!!!!
-						//login
-					
-
+						//login				
 						string sendingUser = findUserSocket(i);
-						
-						if(sendingUser==""){
-							
+						cout << "after receive: " << receiveBuffer << endl;
+						if(sendingUser==""){							
 							//add user to map if not exist
 							if(!findUser(receiveBuffer)){
 								users.insert(pair<string, int>(receiveBuffer, i));
@@ -120,35 +122,49 @@ void server::run(){
 							else{
 								users.find(receiveBuffer)->second=i;
 							}
-							cout<<receiveBuffer;
+							cout << "Connected User:" << receiveBuffer << endl;
 							memcpy(&sendBuffer, "User logged in", sizeof("User logged in"));
 							rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
-							cout << sendBuffer << endl;
-						
+							//cout << sendBuffer << endl;
+                         
 						}
-
-
 						//messages
 						else{
+                         
 							//following
-							if(strcmp(receiveBuffer, "f") == 0){
-								
-							}
-							//befüllen
-							message m (sendingUser,receiveBuffer, timestamp() );
-							messages.push_back(m);
+                            
+							if(receiveBuffer[0] ==  'f' && receiveBuffer[1] == ' '){
+                                cout << "rb befor cut" << receiveBuffer << endl;
+                                //memmove(receiveBuffer, receiveBuffer+2, sizeof(receiveBuffer)-2);
+                                cout << "rb after cut" << receiveBuffer << endl;                                 
+                                if(findUser(receiveBuffer)){
+                                    memcpy(&sendBuffer, "You follows ", sizeof("You follows "));
+                                    strcat(sendBuffer,receiveBuffer);
+
+                                    rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
+                                }
+                                else{
+                                    memcpy(&sendBuffer, "User does not exists", sizeof("User does not exists"));                                  
+                                    rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
+                                }
+	 						}
+                            //messages
+                            else{
+							    message m (sendingUser,receiveBuffer, timestamp() );
+							    messages.push_back(m);
+                            }
 						}
-
-
-
 						////////////////////////////
 					}
-
+                  
 				}
 				
 			}
+           
 		}
+       
     }    
+    
 }
 
 void server::bindServer(char* address, int port){
