@@ -17,9 +17,9 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #endif
+#include <errno.h>
 #include <vector>
 #include <map>
 #include <fstream>
@@ -56,7 +56,7 @@ class server
 
         SOCKADDR_IN addr;
         FD_SET fdSet, workingSet;
-        int listenSocket, maxSocket,newSocket, i;
+        int listenSocket, maxSocket,newSocket, i, on;
 		bool closeConnection;
 		char receiveBuffer[RECEIVE_BUFFER_SIZE];
 		char sendBuffer[SEND_BUFFER_SIZE];

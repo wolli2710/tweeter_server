@@ -31,7 +31,12 @@ void server::run(){
         error("Socket U fail");
         exit(1);
     }
-   
+	on = 1;
+#ifndef WIN32
+	ioctl(listenSocket, FIONBIO, (char*)&on);
+#else
+	ioctlsocket(listenSocket, FIONBIO, (u_long*)&on);
+#endif
     timeout.tv_sec = 3 * 60;
     timeout.tv_usec = 0;
 
@@ -67,11 +72,9 @@ void server::run(){
 			
 				if(i == listenSocket){
 					do{
-						cout << "dafsdf";
 						newSocket = accept(listenSocket, NULL, NULL);
-						cout << "dsdf";
+						
 						if(newSocket < 0){
-							error("client connection failed");
 							break;
 						}
 						cout<<"New client "<<newSocket<<endl;
@@ -104,12 +107,12 @@ void server::run(){
 						}
 						//todo!!!!!!!!!!!!!!!!!!!!!
 						//login
-						cout<<"test0";
+					
 
 						string sendingUser = findUserSocket(i);
-						cout<<"test1";
+						
 						if(sendingUser==""){
-							cout<<"test2";
+							
 							//add user to map if not exist
 							if(!findUser(receiveBuffer)){
 								users.insert(pair<string, int>(receiveBuffer, i));
@@ -117,10 +120,10 @@ void server::run(){
 							else{
 								users.find(receiveBuffer)->second=i;
 							}
-							cout<<"wir sind da";
+							cout<<receiveBuffer;
 							memcpy(&sendBuffer, "User logged in", sizeof("User logged in"));
-							send(i, sendBuffer, sizeof(sendBuffer), 0);
-							
+							rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
+							cout << sendBuffer << endl;
 						
 						}
 
@@ -142,7 +145,7 @@ void server::run(){
 					}
 
 				}
-				cout << "test10"<<endl;
+				
 			}
 		}
     }    
