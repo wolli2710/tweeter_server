@@ -5,7 +5,7 @@ using namespace std;
 int main(){
 
     server tweety;
-	tweety.run();
+    tweety.run();
 
 
 }

@@ -37,6 +37,9 @@ class server
         void bindServer(char* address, int port);
         void listenServer();
         void closeServer();
+		void listening();
+		void login();
+		void following();
         void run();
         int createSocket();
         void startWinSock();
@@ -60,6 +63,7 @@ class server
 		char receiveBuffer[BUFFER_SIZE];
 		char sendBuffer[BUFFER_SIZE];
         int rc, descriptor_ready;
+		string sendingUser;
 };
 
 #endif // SERVER_H
