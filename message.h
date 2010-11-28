@@ -13,6 +13,8 @@ class message
         virtual ~message();
         message(const message& other);
         message& operator=(const message& other);
+        string getName();
+        string getText();
     protected:
     private:
         string name;

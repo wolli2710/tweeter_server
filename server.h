@@ -40,12 +40,16 @@ class server
 		void listening();
 		void login();
 		void following();
+		void iterateThrowSockets();
         void run();
         int createSocket();
         void startWinSock();
         void error(char* string);
 		string findUserSocket(int socketNr);
 		bool findUser(string username);
+        void printFollowers(string username);
+        void printMessages();
+        void printTweeters();
     protected:
     private:
         map<string, int> users;

@@ -49,6 +49,9 @@ void server::run(){
     FD_SET(listenSocket, &fdSet);
     cout<<"Server started\n";
     while(1){
+        printFollowers("test");
+        printMessages();
+        printTweeters();
         //cout << "before memcpy " << endl;
         memcpy(&workingSet, &fdSet, sizeof(fdSet));
         cout << "waiting for anything" << endl;
@@ -56,99 +59,122 @@ void server::run(){
         cout<< rc << endl;
         if(rc<0){
             error("select failed");			
+            break;
         }
         if(rc==0){
             cout<< "select timeout" << endl;
             continue;
         }
         descriptor_ready = rc;
-        for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){            
-            if(FD_ISSET(i, &workingSet)) {
-                descriptor_ready-- ;
-                if(i == listenSocket){
-                    listening();
-                }
-                else {                  
-                    closeConnection=false;
-                    while(true){
-                        rc = recv(i, receiveBuffer, sizeof(receiveBuffer),0);
-                        if(rc<0){
-                            closeConnection=true;
-                            break;
-                        }
-                        if(rc==0){
-                            closeConnection=true;
-                            break;
-                        }
-                        //login				
-                        sendingUser = findUserSocket(i);
-                        cout << "after receive: " << receiveBuffer << endl;
-                        if(sendingUser==""){							
-                            login();                         
-                        }
-                        //messages
-                        else{                         
-                            //following                            
-                            if(receiveBuffer[0] ==  'f' && receiveBuffer[1] == ' '){
-                                following();
-                            }
-                            //messages
-                            else{
-                                message m (sendingUser,receiveBuffer, timestamp() );
-                                messages.push_back(m);
-                            }
-                        }
-                        ////////////////////////////
-                    }                  
-                }                
-            }           
-        }       
+        iterateThrowSockets();       
     }        
 }
 
+void server::iterateThrowSockets(){
+    for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){            
+        if(FD_ISSET(i, &workingSet)) {
+            descriptor_ready-- ;
+            if(i == listenSocket)
+                listening();
+            else {                  
+                closeConnection=false;
+                while(true){
+                    rc = recv(i, receiveBuffer, sizeof(receiveBuffer),0);
+                    if(rc<0){
+#ifdef WIN32
+                        if(WSAGetLastError() != WSAEWOULDBLOCK)
+#else
+                        if(errno != EWOULDBLOCK)
+#endif
+                            closeConnection=true;    
+                        break;
+                    }
+                    if(rc==0){
+                        closeConnection=true;
+                        break;
+                    }
+                    sendingUser = findUserSocket(i);
+                    cout << "after receive: " << receiveBuffer << endl;
+                    //proof if logged in or not
+                    if(sendingUser=="")							
+                        login();                         
+                    else{                         
+                        //following                            
+                        if(receiveBuffer[0] ==  'f' && receiveBuffer[1] == ' ')
+                            following();
+                        //messages
+                        else{
+                            message m (sendingUser,receiveBuffer, timestamp() );
+                            cout << m.getName() << " wrote " << m.getText() << endl;
+                            messages.push_back(m);
+                        }
+                    }                      
+                }  
+                if(closeConnection){
+#ifdef WIN32
+                    closesocket(i);
+#else
+                    close(i);
+#endif
+                    FD_CLR(i,&fdSet);
+                    users[findUserSocket(i)] = -1;
+                    if(i == maxSocket){
+                        while(FD_ISSET(maxSocket, &fdSet)==false)
+                            maxSocket--;
+                    }
+                }
+            }                
+        }           
+    }
+}
+
 void server::login(){
-    //add user to map if not exist
+    string text = "User logged in";
     if(!findUser(receiveBuffer)){
+        //add user to map if not exist
         users.insert(pair<string, int>(receiveBuffer, i));
     }
     else{
-        users.find(receiveBuffer)->second=i;
+
+        if(users[receiveBuffer] == -1)
+            users.find(receiveBuffer)->second=i;
+        else{
+            text = "Already logged in";
+        }
     }
-    cout << "Connected User:" << receiveBuffer << endl;
-    memcpy(&sendBuffer, "User logged in", sizeof("User logged in"));
+    cout << receiveBuffer << text << endl;
+    memcpy(&sendBuffer, text.c_str(), sizeof(text));
     rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
-    //cout << sendBuffer << endl;
+    cout << sendBuffer << endl; //test
 }
 
 void server::following(){
-    cout << "rb befor cut" << receiveBuffer << endl;
-    //memmove(receiveBuffer, receiveBuffer+2, sizeof(receiveBuffer)-2);
-    cout << "rb after cut" << receiveBuffer << endl;                                 
+    cout << "rb befor cut" << receiveBuffer << "!" << endl;
+    memmove(receiveBuffer, receiveBuffer+2, sizeof(receiveBuffer)-2);
+    cout << "rb after cut" << receiveBuffer << "!" << endl;                                 
     if(findUser(receiveBuffer)){
+        followers.insert(pair<string,string>(receiveBuffer,sendingUser));
         memcpy(&sendBuffer, "You follows ", sizeof("You follows "));
         strcat(sendBuffer,receiveBuffer);
-
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
     }
     else{
         memcpy(&sendBuffer, "User does not exists", sizeof("User does not exists"));                                  
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
+       
     }
+    cout << sendBuffer << endl; // test
 }
 
 void server::listening(){
     do{
-        newSocket = accept(listenSocket, NULL, NULL);
-                        
+        newSocket = accept(listenSocket, NULL, NULL);                        
         if(newSocket < 0){
             break;
         }
         cout<<"New client " << newSocket << endl;
-
         memcpy(&sendBuffer, "Connected with Server", sizeof("Connected with Server..."));
-
         send(newSocket, sendBuffer, sizeof(sendBuffer), 0);
-
         //set new Socket to 1 in fdSet
         FD_SET(newSocket, &fdSet);		
         if(newSocket > maxSocket){
@@ -159,13 +185,11 @@ void server::listening(){
 
 void server::bindServer(char* address, int port){
     memset(&addr, 0, sizeof(SOCKADDR_IN));
-   /* addr.sin_family=AF_INET;
-    addr.sin_port=htons(5000);
-    addr.sin_addr.s_addr = ADDR_ANY;
-    */
+   
     addr.sin_family=AF_INET;												//IPv4
     addr.sin_port=htons(5000);												// Port 5000 in use
     addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+    //addr.sin_addr.s_addr = ADDR_ANY;
     //todo addr.sin_addr.s_addr=gethostbyname(address);
 
     int rc;
@@ -204,4 +228,27 @@ string server::findUserSocket(int socketNr){
 
 bool server::findUser(string username){
     return users.find(username)!= users.end();
+}
+
+void server::printFollowers(string username){
+    //multimap<string, string>::iterator it;
+    cout << "PrintFollowser:\n-------------------------\n";
+    for(followers_it = followers.begin(); followers_it != followers.end(); followers_it++){
+        cout << (*followers_it).first << " followed by " << (*followers_it).second << endl;
+    }
+    cout << "-------------------------\n";
+}
+void server::printMessages(){
+    cout << "PrintMessages:\n-------------------------\n";
+    for(messages_it = messages.begin(); messages_it != messages.end(); messages_it++){
+        cout << (*messages_it).getText() << " from " << (*messages_it).getName() << endl; 
+    }
+    cout << "-------------------------\n";
+}
+void server::printTweeters(){
+    cout << "PrintTweeters:\n-------------------------\n";
+    for(users_it = users.begin();users_it!=users.end();users_it++){
+        cout << (*users_it).first << " Socketnumber: " << (*users_it).second << endl;
+    }
+    cout << "-------------------------\n";
 }
