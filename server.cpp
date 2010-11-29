@@ -46,6 +46,7 @@ void server::run(){
     listenServer(); 
     FD_ZERO(&fdSet);
     maxSocket = listenSocket;
+    //FD_SET(0,&fdSet);
     FD_SET(listenSocket, &fdSet);
     cout<<"Server started\n";
     while(1){
@@ -74,7 +75,10 @@ void server::iterateThrowSockets(){
     for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){            
         if(FD_ISSET(i, &workingSet)) {
             descriptor_ready-- ;
-            if(i == listenSocket)
+            /*if(i==0){
+                cout << "keyboard input"; 
+            }
+            else*/ if(i == listenSocket)
                 listening();
             else {                  
                 closeConnection=false;
@@ -105,6 +109,7 @@ void server::iterateThrowSockets(){
                         //messages
                         else{
                             message m (sendingUser,receiveBuffer, timestamp() );
+                            cout << sendingUser << " wrote " << receiveBuffer << endl;
                             cout << m.getName() << " wrote " << m.getText() << endl;
                             messages.push_back(m);
                         }

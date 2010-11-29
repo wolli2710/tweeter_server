@@ -13,8 +13,13 @@ message::~message()
     //dtor
 }
 
+
+
 message::message(const message& other)
 {
+    name = other.name;
+    text = other.text;
+    time = other.time;
     //copy ctor
 }
 
