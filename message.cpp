@@ -37,3 +37,7 @@ string message::getName(){
 string message::getText(){
     return text;
 }
+
+string message::convertToString(){
+    return;
+}

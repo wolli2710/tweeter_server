@@ -15,6 +15,7 @@ class message
         message& operator=(const message& other);
         string getName();
         string getText();
+        string convertToString();
     protected:
     private:
         string name;

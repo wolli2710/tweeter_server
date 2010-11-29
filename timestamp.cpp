@@ -42,3 +42,7 @@ void timestamp::getTime()
     min=Tm->tm_min,
     sec=Tm->tm_sec;
  }
+
+string timestamp::convertToString(){
+    
+}

@@ -109,9 +109,15 @@ void server::iterateThrowSockets(){
                         //messages
                         else{
                             message m (sendingUser,receiveBuffer, timestamp() );
-                            cout << sendingUser << " wrote " << receiveBuffer << endl;
+                            //cout << sendingUser << " wrote " << receiveBuffer << endl;
                             cout << m.getName() << " wrote " << m.getText() << endl;
                             messages.push_back(m);
+                            pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
+                            ret = followers.equal_range(sendingUser);
+                            memcpy(&sendBuffer, receiveBuffer, sizeof(receiveBuffer));
+                            for(followers_it=ret.first; followers_it != ret.second;++followers_it){
+                                rc = send(users[(*followers_it).second], sendBuffer, sizeof(sendBuffer), 0);
+                            }
                         }
                     }                      
                 }  
@@ -158,17 +164,27 @@ void server::following(){
     memmove(receiveBuffer, receiveBuffer+2, sizeof(receiveBuffer)-2);
     cout << "rb after cut" << receiveBuffer << "!" << endl;                                 
     if(findUser(receiveBuffer)){
+        pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
+        ret = followers.equal_range(receiveBuffer);                   
+        for(followers_it=ret.first; followers_it != ret.second;++followers_it){
+            if((*followers_it).second == sendingUser){
+                memcpy(&sendBuffer, "You are already following ", sizeof("You are already following "));
+                strcat(sendBuffer,receiveBuffer);
+                rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
+                return;
+            }
+        }
         followers.insert(pair<string,string>(receiveBuffer,sendingUser));
-        memcpy(&sendBuffer, "You follows ", sizeof("You follows "));
+        memcpy(&sendBuffer, "You now follow ", sizeof("You now follow "));
         strcat(sendBuffer,receiveBuffer);
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
     }
     else{
-        memcpy(&sendBuffer, "User does not exists", sizeof("User does not exists"));                                  
+        memcpy(&sendBuffer, "User does not exist", sizeof("User does not exist"));                                  
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
        
     }
-    cout << sendBuffer << endl; // test
+    //cout << sendBuffer << endl; // test
 }
 
 void server::listening(){

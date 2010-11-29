@@ -3,6 +3,7 @@
 
 #include <time.h>
 #include <stdio.h>
+#include <string>
 
 class timestamp
 {
@@ -13,6 +14,7 @@ class timestamp
         timestamp& operator=(const timestamp& other);
         void printTime();
         void getTime();
+        string convertToString();
     protected:
     private:
         int day;
