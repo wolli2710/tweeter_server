@@ -2,6 +2,7 @@
 
 timestamp::timestamp()
 {
+	getTime();
     //ctor
 }
 

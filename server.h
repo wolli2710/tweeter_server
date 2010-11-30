@@ -59,6 +59,8 @@ class server
         vector<message> messages;
         vector<message>::iterator messages_it;
         struct timeval timeout;
+		bool shutDown;
+		ofstream output;
 
         SOCKADDR_IN addr;
         FD_SET fdSet, workingSet;

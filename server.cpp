@@ -22,6 +22,8 @@ void server::startWinSock(){
 }
 
 void server::run(){
+	output.open("output.txt");
+	shutDown=false;
     on = 1;
     startWinSock();
     listenSocket =  socket(AF_INET, SOCK_STREAM, 0);
@@ -49,7 +51,7 @@ void server::run(){
     //FD_SET(0,&fdSet);
     FD_SET(listenSocket, &fdSet);
     cout<<"Server started\n";
-    while(1){
+    while(!shutDown){
         printFollowers("test");
         printMessages();
         printTweeters();
@@ -67,8 +69,11 @@ void server::run(){
             continue;
         }
         descriptor_ready = rc;
-        iterateThrowSockets();       
-    }        
+        iterateThrowSockets();  
+		
+
+    }  
+	output.close();
 }
 
 void server::iterateThrowSockets(){
@@ -102,14 +107,20 @@ void server::iterateThrowSockets(){
                     //proof if logged in or not
                     if(sendingUser=="")							
                         login();                         
-                    else{                         
+                    else{            
+						cout<<sendingUser<<" buffer:"<<receiveBuffer;
                         //following                            
                         if(receiveBuffer[0] ==  'f' && receiveBuffer[1] == ' ')
                             following();
                         //messages
+						else if(sendingUser == "admin" && strcmp(receiveBuffer,"shutdown")==0 ){
+							shutDown = true;
+							cout<<"Hallo wir sinds..";
+							return;	
+						}
                         else{
                             message m (sendingUser,receiveBuffer, timestamp() );
-                            //cout << sendingUser << " wrote " << receiveBuffer << endl;
+							output<< sendingUser <<"wrote:"<<m.getText() <<"\n";
                             cout << m.getName() << " wrote " << m.getText() << endl;
                             messages.push_back(m);
                             pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
