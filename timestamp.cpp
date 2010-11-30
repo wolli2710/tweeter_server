@@ -43,6 +43,6 @@ void timestamp::getTime()
     sec=Tm->tm_sec;
  }
 
-string timestamp::convertToString(){
-    
+std::string timestamp::convertToString(){
+    return "";
 }

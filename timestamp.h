@@ -14,7 +14,7 @@ class timestamp
         timestamp& operator=(const timestamp& other);
         void printTime();
         void getTime();
-        string convertToString();
+        std::string convertToString();
     protected:
     private:
         int day;
