@@ -22,8 +22,8 @@ void server::startWinSock(){
 }
 
 void server::run(){
-	output.open("output.txt");
-	shutDown=false;
+    output.open("output.txt");
+    shutDown=false;
     on = 1;
     startWinSock();
     listenSocket =  socket(AF_INET, SOCK_STREAM, 0);
@@ -48,14 +48,12 @@ void server::run(){
     listenServer(); 
     FD_ZERO(&fdSet);
     maxSocket = listenSocket;
-    //FD_SET(0,&fdSet);
     FD_SET(listenSocket, &fdSet);
     cout<<"Server started\n";
     while(!shutDown){
         printFollowers("test");
         printMessages();
         printTweeters();
-        //cout << "before memcpy " << endl;
         memcpy(&workingSet, &fdSet, sizeof(fdSet));
         cout << "waiting for anything" << endl;
         rc = select(maxSocket+1, &workingSet, NULL, NULL, &timeout);
@@ -70,20 +68,17 @@ void server::run(){
         }
         descriptor_ready = rc;
         iterateThrowSockets();  
-		
+        
 
     }  
-	output.close();
+    output.close();
 }
 
 void server::iterateThrowSockets(){
     for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){            
         if(FD_ISSET(i, &workingSet)) {
             descriptor_ready-- ;
-            /*if(i==0){
-                cout << "keyboard input"; 
-            }
-            else*/ if(i == listenSocket)
+            if(i == listenSocket)
                 listening();
             else {                  
                 closeConnection=false;
@@ -108,24 +103,26 @@ void server::iterateThrowSockets(){
                     if(sendingUser=="")							
                         login();                         
                     else{            
-						cout<<sendingUser<<" buffer:"<<receiveBuffer;
+                        cout<<sendingUser<<" buffer:"<<receiveBuffer;
                         //following                            
                         if(receiveBuffer[0] ==  'f' && receiveBuffer[1] == ' ')
                             following();
                         //messages
-						else if(sendingUser == "admin" && strcmp(receiveBuffer,"shutdown")==0 ){
-							shutDown = true;
-							cout<<"Hallo wir sinds..";
-							return;	
-						}
+                        else if(sendingUser == "admin" && strcmp(receiveBuffer,"shutdown")==0 ){
+                            shutDown = true;
+                            cout<<"Hallo wir sinds..";
+                            return;	
+                        }
                         else{
-                            message m (sendingUser,receiveBuffer, timestamp() );
-							output<< sendingUser <<"wrote:"<<m.getText() <<"\n";
-                            cout << m.getName() << " wrote " << m.getText() << endl;
+                            timestamp t;
+                            message m (sendingUser,receiveBuffer, t);                                                     
+                            output<< m.convertToString() <<"\n";
+                            //cout << m.convertToString() << endl;
                             messages.push_back(m);
                             pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
                             ret = followers.equal_range(sendingUser);
-                            memcpy(&sendBuffer, receiveBuffer, sizeof(receiveBuffer));
+                            string mes = m.convertToString();
+                            memcpy(&sendBuffer, mes.c_str(), mes.length());
                             for(followers_it=ret.first; followers_it != ret.second;++followers_it){
                                 rc = send(users[(*followers_it).second], sendBuffer, sizeof(sendBuffer), 0);
                             }
@@ -157,7 +154,6 @@ void server::login(){
         users.insert(pair<string, int>(receiveBuffer, i));
     }
     else{
-
         if(users[receiveBuffer] == -1)
             users.find(receiveBuffer)->second=i;
         else{
@@ -220,8 +216,8 @@ void server::bindServer(char* address, int port){
    
     addr.sin_family=AF_INET;												//IPv4
     addr.sin_port=htons(5000);												// Port 5000 in use
-    addr.sin_addr.s_addr=inet_addr("127.0.0.1");
-    //addr.sin_addr.s_addr = ADDR_ANY;
+    //addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+    addr.sin_addr.s_addr = ADDR_ANY;
     //todo addr.sin_addr.s_addr=gethostbyname(address);
 
     int rc;
