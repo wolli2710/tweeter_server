@@ -9,7 +9,7 @@
 #ifdef WIN32
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
-//#pragma comment(lib, "ptheadVC1.lib")
+#pragma comment(lib, "pthreadVC2.lib")
 #else
 #include <sys/socket.h>
 #include <sys/types.h>
