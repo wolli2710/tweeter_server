@@ -17,6 +17,7 @@ class timestamp
         std::string convertToString();
     protected:
     private:
+        std::string convertIntToString(int integer);
         int day;
         int mon;
         int year;

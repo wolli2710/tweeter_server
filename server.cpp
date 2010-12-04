@@ -10,7 +10,6 @@ server::~server()
     //dtor
 }
 
-//Windows specific 
 void server::startWinSock(){
 #ifdef WIN32
     WORD wVersionRequested = MAKEWORD(2,2);
@@ -23,11 +22,11 @@ void server::startWinSock(){
 }
 
 void server::run(){
-	output.open("output.txt");
-	shutDown=false;
+    output.open("output.txt");
+    shutDown=false;
     on = 1;
     startWinSock();
-    listenSocket =  socket(AF_INET, SOCK_STREAM, 0);
+    listenSocket = socket(AF_INET, SOCK_STREAM, 0);
     
     if(listenSocket == INVALID_SOCKET){
         error("Socket U fail");
@@ -45,8 +44,8 @@ void server::run(){
     timeout.tv_sec = 20;
     timeout.tv_usec = 0;
 
-    bindServer("localhost", PORT);  
-    listenServer(); 
+    bindServer("localhost", PORT);
+    listenServer();
     FD_ZERO(&fdSet);
     maxSocket = listenSocket;
     FD_SET(listenSocket, &fdSet);
@@ -60,7 +59,7 @@ void server::run(){
         rc = select(maxSocket+1, &workingSet, NULL, NULL, &timeout);
         cout<< rc << endl;
         if(rc<0){
-            error("select failed");			
+            error("select failed");
             break;
         }
         if(rc==0){
@@ -68,20 +67,20 @@ void server::run(){
             continue;
         }
         descriptor_ready = rc;
-        iterateThrowSockets();  
-		
+        iterateThrowSockets();
+        
 
-    }  
-	output.close();
+    }
+    output.close();
 }
 
 void server::iterateThrowSockets(){
-    for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){            
+    for(i=0; i <= maxSocket && descriptor_ready > 0 ; i++){
         if(FD_ISSET(i, &workingSet)) {
             descriptor_ready-- ;
-             if(i == listenSocket)
+            if(i == listenSocket)
                 listening();
-            else {                  
+            else {
                 closeConnection=false;
                 while(true){
                     rc = recv(i, receiveBuffer, sizeof(receiveBuffer),0);
@@ -91,7 +90,7 @@ void server::iterateThrowSockets(){
 #else
                         if(errno != EWOULDBLOCK)
 #endif
-                            closeConnection=true;    
+                            closeConnection=true;
                         break;
                     }
                     if(rc==0){
@@ -101,27 +100,35 @@ void server::iterateThrowSockets(){
                     sendingUser = findUserSocket(i);
                     cout << "after receive: " << receiveBuffer << endl;
                     //proof if logged in or not
-                    if(sendingUser=="")							
-                        login();                         
-                    else{            
-                        //following                            
-                        if(receiveBuffer[0] ==  'f' && receiveBuffer[1] == ' ')
+                    if(sendingUser=="")
+                        login();
+                    else{
+                        cout<<sendingUser<<" buffer:"<<receiveBuffer;
+                        //following
+                        if(receiveBuffer[0] == 'f' && receiveBuffer[1] == ' ')
                             following();
                         //messages
+                        else if(sendingUser == "admin" && strcmp(receiveBuffer,"shutdown")==0 ){
+                            shutDown = true;
+                            cout<<"Hallo wir sinds..";
+                            return;
+                        }
                         else{
-                            message m (sendingUser,receiveBuffer, timestamp() );
-							output<< sendingUser <<"wrote:"<<m.getText() <<"\n";
-                            cout << m.getName() << " wrote " << m.getText() << endl;
+                            timestamp t;
+                            message m (sendingUser,receiveBuffer, t);
+                            output<< m.convertToString() <<"\n";
+                            //cout << m.convertToString() << endl;
                             messages.push_back(m);
                             pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
                             ret = followers.equal_range(sendingUser);
-                            memcpy(&sendBuffer, receiveBuffer, sizeof(receiveBuffer));
+                            string mes = m.convertToString();
+                            memcpy(&sendBuffer, mes.c_str(), mes.length());
                             for(followers_it=ret.first; followers_it != ret.second;++followers_it){
                                 rc = send(users[(*followers_it).second], sendBuffer, sizeof(sendBuffer), 0);
                             }
                         }
-                    }                      
-                }  
+                    }
+                }
                 if(closeConnection){
 #ifdef WIN32
                     closesocket(i);
@@ -135,8 +142,8 @@ void server::iterateThrowSockets(){
                             maxSocket--;
                     }
                 }
-            }                
-        }           
+            }
+        }
     }
 }
 
@@ -156,15 +163,16 @@ void server::login(){
     cout << receiveBuffer << text << endl;
     memcpy(&sendBuffer, text.c_str(), sizeof(text));
     rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
+    cout << sendBuffer << endl; //test
 }
 
 void server::following(){
     cout << "rb befor cut" << receiveBuffer << "!" << endl;
     memmove(receiveBuffer, receiveBuffer+2, sizeof(receiveBuffer)-2);
-    cout << "rb after cut" << receiveBuffer << "!" << endl;                                 
+    cout << "rb after cut" << receiveBuffer << "!" << endl;
     if(findUser(receiveBuffer)){
         pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
-        ret = followers.equal_range(receiveBuffer);                   
+        ret = followers.equal_range(receiveBuffer);
         for(followers_it=ret.first; followers_it != ret.second;++followers_it){
             if((*followers_it).second == sendingUser){
                 memcpy(&sendBuffer, "You are already following ", sizeof("You are already following "));
@@ -179,23 +187,24 @@ void server::following(){
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
     }
     else{
-        memcpy(&sendBuffer, "User does not exist", sizeof("User does not exist"));                                  
+        memcpy(&sendBuffer, "User does not exist", sizeof("User does not exist"));
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
        
     }
+    //cout << sendBuffer << endl; // test
 }
 
 void server::listening(){
     do{
-        newSocket = accept(listenSocket, NULL, NULL);                        
+        newSocket = accept(listenSocket, NULL, NULL);
         if(newSocket < 0){
             break;
         }
         cout<<"New client " << newSocket << endl;
         memcpy(&sendBuffer, "Connected with Server", sizeof("Connected with Server..."));
         send(newSocket, sendBuffer, sizeof(sendBuffer), 0);
-        //set new Socket to 1 in fdSet[Array]
-        FD_SET(newSocket, &fdSet);		
+        //set new Socket to 1 in fdSet
+        FD_SET(newSocket, &fdSet);
         if(newSocket > maxSocket){
             maxSocket=newSocket;
         }
@@ -205,11 +214,11 @@ void server::listening(){
 void server::bindServer(char* address, int port){
     memset(&addr, 0, sizeof(SOCKADDR_IN));
    
-    addr.sin_family=AF_INET;												
-    addr.sin_port=htons(5000);												//Port 5000 in use
+    addr.sin_family=AF_INET; //IPv4
+    addr.sin_port=htons(5000); // Port 5000 in use
     //addr.sin_addr.s_addr=inet_addr("127.0.0.1");
     addr.sin_addr.s_addr = ADDR_ANY;
-    //addr.sin_addr.s_addr=gethostbyname(address);
+    //todo addr.sin_addr.s_addr=gethostbyname(address);
 
     int rc;
     rc = bind(listenSocket, (SOCKADDR*)&addr, sizeof(SOCKADDR_IN));
@@ -229,11 +238,11 @@ void server::listenServer(){
 }
 
 void server::error(char* string){
-    #ifndef WIN32
+#ifndef WIN32
         cout << endl << perror(string) << endl;
-    #else 
+#else
         cout << endl << string << " " << WSAGetLastError() << endl;
-    #endif
+#endif
 }
 
 string server::findUserSocket(int socketNr){
@@ -250,6 +259,7 @@ bool server::findUser(string username){
 }
 
 void server::printFollowers(string username){
+    //multimap<string, string>::iterator it;
     cout << "PrintFollowser:\n-------------------------\n";
     for(followers_it = followers.begin(); followers_it != followers.end(); followers_it++){
         cout << (*followers_it).first << " followed by " << (*followers_it).second << endl;
@@ -259,7 +269,7 @@ void server::printFollowers(string username){
 void server::printMessages(){
     cout << "PrintMessages:\n-------------------------\n";
     for(messages_it = messages.begin(); messages_it != messages.end(); messages_it++){
-        cout << (*messages_it).getText() << " from " << (*messages_it).getName() << endl; 
+        cout << (*messages_it).getText() << " from " << (*messages_it).getName() << endl;
     }
     cout << "-------------------------\n";
 }

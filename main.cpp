@@ -6,6 +6,4 @@ int main(){
 
     server tweety;
     tweety.run();
-
-
 }

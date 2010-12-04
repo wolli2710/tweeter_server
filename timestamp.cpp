@@ -2,7 +2,7 @@
 
 timestamp::timestamp()
 {
-	getTime();
+    getTime();
     //ctor
 }
 
@@ -13,6 +13,12 @@ timestamp::~timestamp()
 
 timestamp::timestamp(const timestamp& other)
 {
+    day = other.day;
+    mon = other.mon;
+    year = other.year;
+    hour = other.hour;
+    min = other.min;
+    sec = other.sec;
     //copy ctor
 }
 
@@ -24,7 +30,7 @@ timestamp& timestamp::operator=(const timestamp& rhs)
 }
 
 void timestamp::printTime(){
-    printf(" %d %d %d, %d:%d:%d",
+    printf(" %2d %2d %4d, %2d:%2d:%2d",
     day, mon, year, hour, min, sec);
 }
 
@@ -37,7 +43,7 @@ void timestamp::getTime()
     Tm=localtime(&ltime);
 
     day = Tm->tm_mday;
-    mon =Tm->tm_mon,
+    mon =Tm->tm_mon+1,
     year=(Tm->tm_year)+1900,
     hour=Tm->tm_hour,
     min=Tm->tm_min,
@@ -45,5 +51,7 @@ void timestamp::getTime()
  }
 
 std::string timestamp::convertToString(){
-    return "";
+    char s[20];
+    sprintf(s,"%04d%02d%02d%02d%02d%02d",year,mon,day,hour,min,sec);
+    return s;
 }

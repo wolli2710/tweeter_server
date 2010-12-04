@@ -39,5 +39,5 @@ string message::getText(){
 }
 
 string message::convertToString(){
-    return "";
+    return time.convertToString()+name+text;
 }

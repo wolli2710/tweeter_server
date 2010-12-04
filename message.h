@@ -9,7 +9,7 @@ using namespace std;
 class message
 {
     public:
-		message(string, string, timestamp);
+        message(string, string, timestamp);
         virtual ~message();
         message(const message& other);
         message& operator=(const message& other);
