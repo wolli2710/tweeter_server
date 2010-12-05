@@ -51,7 +51,6 @@ void server::run(){
     FD_SET(listenSocket, &fdSet);
     cout<<"Server started\n";
     while(!shutDown){
-        printFollowers("test");
         printMessages();
         printTweeters();
         memcpy(&workingSet, &fdSet, sizeof(fdSet));
@@ -154,8 +153,15 @@ void server::login(){
         users.insert(pair<string, int>(receiveBuffer, i));
     }
     else{
-        if(users[receiveBuffer] == -1)
+		if(users[receiveBuffer] == -1){
             users.find(receiveBuffer)->second=i;
+
+			for(messages_it = messages.begin(); messages_it != messages.end(); messages_it++){
+				if(followers.find(receiveBuffer)->second == messages_it->getName()){
+					cout << messages_it->getText() << endl;
+					}
+				}
+			}
         else{
             text = "Already logged in";
         }
@@ -216,7 +222,6 @@ void server::bindServer(char* address, int port){
    
     addr.sin_family=AF_INET; //IPv4
     addr.sin_port=htons(5000); // Port 5000 in use
-    //addr.sin_addr.s_addr=inet_addr("127.0.0.1");
     addr.sin_addr.s_addr = ADDR_ANY;
     //todo addr.sin_addr.s_addr=gethostbyname(address);
 
