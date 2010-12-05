@@ -1,3 +1,7 @@
+//Multimediale Netzwerke und IT Sicherheit
+//Uebungsprojekt
+//Andreas Stallinger / Wolfgang Vogl
+
 #ifndef SERVER_H
 #define SERVER_H
 

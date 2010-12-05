@@ -1,3 +1,7 @@
+//Multimediale Netzwerke und IT Sicherheit
+//Uebungsprojekt
+//Andreas Stallinger / Wolfgang Vogl
+
 #include "message.h"
 
 message::message(string username, string message, timestamp currenttime)

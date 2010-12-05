@@ -1,3 +1,7 @@
+//Multimediale Netzwerke und IT Sicherheit
+//Uebungsprojekt
+//Andreas Stallinger / Wolfgang Vogl
+
 #ifndef TIMESTAMP_H
 #define TIMESTAMP_H
 

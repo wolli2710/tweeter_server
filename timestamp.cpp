@@ -1,3 +1,7 @@
+//Multimediale Netzwerke und IT Sicherheit
+//Uebungsprojekt
+//Andreas Stallinger / Wolfgang Vogl
+
 #include "timestamp.h"
 
 timestamp::timestamp()
