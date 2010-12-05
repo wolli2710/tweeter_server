@@ -37,7 +37,7 @@ void server::run(){
     shutDown=false;
     on = 1;
     startWinSock();
-	
+    
     listenSocket = socket(AF_INET, SOCK_STREAM, 0);
     
     if(listenSocket == INVALID_SOCKET){
@@ -53,30 +53,30 @@ void server::run(){
 #else
     ioctlsocket(listenSocket, FIONBIO, (u_long*)&on);
 #endif
-	//duration of the timeout in select
+    //duration of the timeout in select
     timeout.tv_sec = 20;
     timeout.tv_usec = 0;
 
-	
+    
     bindServer("127.0.0.1", PORT);
-	
+    
     listenServer();
 
-	//initialize the fdSet
+    //initialize the fdSet
     FD_ZERO(&fdSet);
     maxSocket = listenSocket;
     FD_SET(listenSocket, &fdSet);
     cout<<"Server started\n";
-	//Main loop of the server to handle the clients
+    //Main loop of the server to handle the clients
     while(!shutDown){
-		//Prints out all messages written by the users (testing method on the server)
+        //Prints out all messages written by the users (testing method on the server)
         printMessages();
-		//Prints out all users by name (testing method on the server)
+        //Prints out all users by name (testing method on the server)
         printTweeters();
-		//copy fdSet in workingSet
+        //copy fdSet in workingSet
         memcpy(&workingSet, &fdSet, sizeof(fdSet));
         cout << "waiting for anything" << endl;
-		//Call select and wait 20 seconds
+        //Call select and wait 20 seconds
         rc = select(maxSocket+1, &workingSet, NULL, NULL, &timeout);
         if(rc<0){
             error("select failed");
@@ -130,16 +130,15 @@ void server::iterateThrowSockets(){
                         //following conditions
                         if(receiveBuffer[0] == 'f' && receiveBuffer[1] == ' ')
                             following();
-                        
                         else{
-							//call the class timestamp and write username, message and time into a message instance
-							//write the message into logfile and pushback into the messages vector
+                            //call the class timestamp and write username, message and time into a message instance
+                            //write the message into logfile and pushback into the messages vector
                             timestamp t;
                             message m (sendingUser,receiveBuffer, t);
                             output<< m.convertToString() <<"\n";
                             messages.push_back(m);
-							
-							//send the message to all online followers
+                            
+                            //send the message to all online followers
                             pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
                             ret = followers.equal_range(sendingUser);
                             string mes = m.convertToString();
@@ -150,16 +149,16 @@ void server::iterateThrowSockets(){
                         }
                     }
                 }
-				//if the user close the connection his socket would be closed
+                //if the user close the connection his socket would be closed
                 if(closeConnection){
 #ifdef WIN32
                     closesocket(i);
 #else
                     close(i);
 #endif
-					//socketnumber is set to 0 in fdSet
+                    //socketnumber is set to 0 in fdSet
                     FD_CLR(i,&fdSet);
-					//the users socket is set to -1 as a inactive user in the users map
+                    //the users socket is set to -1 as a inactive user in the users map
                     users[findUserSocket(i)] = -1;
                     if(i == maxSocket){
                         while(FD_ISSET(maxSocket, &fdSet)==false)
@@ -179,35 +178,35 @@ void server::login(){
     string text = "User logged in";
     if(!findUser(receiveBuffer)){
         //add username and socketnumber to the users map if 
-		//not exists (for new users)
+        //not exists (for new users)
         users.insert(pair<string, int>(receiveBuffer, i));
     }
     else{
-		//handle users which don`t login for the first time
-		if(users[receiveBuffer] == -1){
-			//give a user a socketnumber in the map users
+        //handle users which don`t login for the first time
+        if(users[receiveBuffer] == -1){
+            //give a user a socketnumber in the map users
             users.find(receiveBuffer)->second=i;
-			////////////////////////////////
-			//send all messages of the tweeters which the user, who login is following
-			memset(sendBuffer,0,BUFFER_SIZE); 
+            ////////////////////////////////
+            //send all messages of the tweeters which the user, who login is following
+            memset(sendBuffer,0,BUFFER_SIZE); 
 
-			for(messages_it = messages.begin(); messages_it != messages.end(); messages_it++){
-				if(follows.find(receiveBuffer)->second == messages_it->getName()){
-					string oldMessage = messages_it->getText();
-					memcpy(&sendBuffer, oldMessage.c_str(), oldMessage.length());
-					cout<< "****************************************" << sendBuffer << endl;
-					send(users[receiveBuffer], sendBuffer, sizeof(sendBuffer), 0);
-					cout<< "******/////////////////////*************" << sendBuffer << endl;
-					sendBuffer[0] = '\0';
-				}	
-			}
-			//////////////////////////////////
-		}
+            for(messages_it = messages.begin(); messages_it != messages.end(); messages_it++){
+                if(follows.find(receiveBuffer)->second == messages_it->getName()){
+                    string oldMessage = messages_it->convertToString();
+                    memcpy(&sendBuffer, oldMessage.c_str(), oldMessage.length());
+                    //cout<< "****************************************" << sendBuffer << endl;
+                    send(users[receiveBuffer], sendBuffer, sizeof(sendBuffer), 0);
+                    //cout<< "******/////////////////////*************" << sendBuffer << endl;
+                    sendBuffer[0] = '\0';
+                }	
+            }
+            //////////////////////////////////
+        }
         else{
             text = "Already logged in";
         }
     }
-	//Print out "user logged in" and send confirmation
+    //Print out "user logged in" and send confirmation
     cout << receiveBuffer << text << endl;
     memcpy(&sendBuffer, text.c_str(), sizeof(text));
     rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
@@ -220,15 +219,15 @@ void server::login(){
 **********************************************************/
 void server::following(){
     cout << "rb befor cut" << receiveBuffer << "!" << endl;
-	//cut the identifier for follow "f " from receiveBuffer
+    //cut the identifier for follow "f " from receiveBuffer
     memmove(receiveBuffer, receiveBuffer+2, sizeof(receiveBuffer)-2);
     cout << "rb after cut" << receiveBuffer << "!" << endl;
-	//handle users which actually exist
+    //handle users which actually exist
     if(findUser(receiveBuffer)){
         pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
         ret = followers.equal_range(receiveBuffer);
         for(followers_it=ret.first; followers_it != ret.second;++followers_it){
-			//handle the case that the user is already following this tweeter
+            //handle the case that the user is already following this tweeter
             if((*followers_it).second == sendingUser){
                 memcpy(&sendBuffer, "You are already following ", sizeof("You are already following "));
                 strcat(sendBuffer,receiveBuffer);
@@ -236,15 +235,15 @@ void server::following(){
                 return;
             }
         }
-		//fill in the user as a follower to the followers multimap and send a confirmation
+        //fill in the user as a follower to the followers multimap and send a confirmation
         followers.insert(pair<string,string>(receiveBuffer,sendingUser));
-		follows.insert(pair<string,string>(sendingUser, receiveBuffer));
+        follows.insert(pair<string,string>(sendingUser, receiveBuffer));
         memcpy(&sendBuffer, "You now follow ", sizeof("You now follow "));
         strcat(sendBuffer,receiveBuffer);
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
     }
     else{
-		//send a information that the user not exists
+        //send a information that the user not exists
         memcpy(&sendBuffer, "User does not exist", sizeof("User does not exist"));
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
        
@@ -279,8 +278,8 @@ void server::bindServer(char* address, int port){
     memset(&addr, 0, sizeof(SOCKADDR_IN));
    
     addr.sin_family=AF_INET;	//IPv4
-    addr.sin_port=htons(5000);	// Port 5000 in use
-    addr.sin_addr.s_addr = ADDR_ANY;
+    addr.sin_port=htons(port);	// Port 5000 in use
+    addr.sin_addr.s_addr = inet_addr(address);
    
     int rc;
     rc = bind(listenSocket, (SOCKADDR*)&addr, sizeof(SOCKADDR_IN));

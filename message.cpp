@@ -17,8 +17,6 @@ message::~message()
     //dtor
 }
 
-
-
 message::message(const message& other)
 {
     name = other.name;
@@ -43,5 +41,5 @@ string message::getText(){
 }
 
 string message::convertToString(){
-    return time.convertToString()+name+text;
+    return "m" + time.convertToString() + ";" + name + ";" + text;
 }
