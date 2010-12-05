@@ -56,7 +56,10 @@ class server
     private:
         map<string, int> users;
         map<string, int>::iterator users_it;
+		//key is the sender
         multimap<string, string> followers;
+		//key is the receiver
+		multimap<string, string> follows;
         multimap<string, string>::iterator followers_it;
         vector<message> messages;
         vector<message>::iterator messages_it;

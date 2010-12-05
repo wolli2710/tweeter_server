@@ -107,17 +107,18 @@ void server::iterateThrowSockets(){
                         if(receiveBuffer[0] == 'f' && receiveBuffer[1] == ' ')
                             following();
                         //messages
-                        else if(sendingUser == "admin" && strcmp(receiveBuffer,"shutdown")==0 ){
+						/*
+                        else if(sendingUser == "admin" && strcmp(receiveBuffer, "shutdown") == 0 ){
                             shutDown = true;
                             cout<<"Hallo wir sinds..";
                             return;
-                        }
+                        } */
                         else{
                             timestamp t;
                             message m (sendingUser,receiveBuffer, t);
                             output<< m.convertToString() <<"\n";
-                            //cout << m.convertToString() << endl;
                             messages.push_back(m);
+
                             pair<multimap<string,string>::iterator,multimap<string,string>::iterator> ret;
                             ret = followers.equal_range(sendingUser);
                             string mes = m.convertToString();
@@ -155,13 +156,19 @@ void server::login(){
     else{
 		if(users[receiveBuffer] == -1){
             users.find(receiveBuffer)->second=i;
-
+			////////////////////////////////
+			sendBuffer[0] = '\0';
 			for(messages_it = messages.begin(); messages_it != messages.end(); messages_it++){
-				if(followers.find(receiveBuffer)->second == messages_it->getName()){
-					cout << messages_it->getText() << endl;
-					}
-				}
+				if(follows.find(receiveBuffer)->second == messages_it->getName()){
+					string oldMessage = messages_it->getText();
+					memcpy(&sendBuffer, oldMessage.c_str(), oldMessage.length());
+					cout<< "****************************************" << sendBuffer << endl;
+					rc = send(users[receiveBuffer], sendBuffer, sizeof(sendBuffer), 0);
+					sendBuffer[0] = '\0';
+				}	
 			}
+			//////////////////////////////////
+		}
         else{
             text = "Already logged in";
         }
@@ -188,6 +195,7 @@ void server::following(){
             }
         }
         followers.insert(pair<string,string>(receiveBuffer,sendingUser));
+		follows.insert(pair<string,string>(sendingUser, receiveBuffer));
         memcpy(&sendBuffer, "You now follow ", sizeof("You now follow "));
         strcat(sendBuffer,receiveBuffer);
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
@@ -197,7 +205,6 @@ void server::following(){
         rc = send(i, sendBuffer, sizeof(sendBuffer), 0);
        
     }
-    //cout << sendBuffer << endl; // test
 }
 
 void server::listening(){
